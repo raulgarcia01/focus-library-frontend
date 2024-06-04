@@ -13,6 +13,8 @@ import { Password } from 'primereact/password';
 import { Divider } from 'primereact/divider';
 import { Toast } from 'primereact/toast';
 import { UserService } from '../../../../demo/service/UsersService';
+import { useRouter } from 'next/navigation';
+import jwt from 'jsonwebtoken';
 
 const UserMantto = () => {
 
@@ -32,9 +34,31 @@ const UserMantto = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [user, setUser] = useState(emptyUser);
     const toast = useRef(null);
+    const router = useRouter();
 
     useEffect(() => {
-        UserService.getAllUsers().then(data => setUsers(data));
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+        try {
+            const secret = process.env.NEXT_PUBLIC_JWT_SECRET as string;
+            const decoded = jwt.verify(token, secret.toString('utf-8'));
+            if(decoded.role.toUpperCase() === 'STUDENT'){
+                router.push('/auth/access');
+                return;
+            }
+          } catch (error) {
+            console.log(error);
+            router.push('/auth/login');
+            return;
+          }
+    }, [router]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        UserService.getAllUsers(token).then(data => setUsers(data));
     }, []);
 
     const onInputChange = (e, name) => {
@@ -86,6 +110,7 @@ const UserMantto = () => {
     };
 
     const saveUser = () => {
+        const token = localStorage.getItem('token');
         setSubmitted(true);
 
         if (user.username.trim() && user.password.trim() 
@@ -95,7 +120,7 @@ const UserMantto = () => {
             let _user = {...user};
             
             if(!user?.id){
-                UserService.insertUsers(_user).then(data => {
+                UserService.insertUsers(_user, token).then(data => {
                     if(data){
                         setUser(data);
                         _users.push(data);
@@ -108,7 +133,7 @@ const UserMantto = () => {
                     }
                 });
             } else {
-                UserService.updateUsers(_user).then(data => {
+                UserService.updateUsers(_user, token).then(data => {
                     if(data){
                         setUser(data);
                         const index = findIndexById(_user.id);

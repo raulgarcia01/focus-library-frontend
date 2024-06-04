@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef, use } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { BookService } from '@/demo/service/BookService';
 import { UserService } from '@/demo/service/UsersService';
 import { Toolbar } from 'primereact/toolbar';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BookRecordsService } from '@/demo/service/BookRecordsService';
+import { useRouter } from 'next/navigation';
+import jwt from 'jsonwebtoken';
 
 const BookRecordMantto = () => {
 
@@ -18,14 +19,37 @@ const BookRecordMantto = () => {
     const [selectedBooks, setSelectedBooks] = useState([]);
     const [selectedUser, setSelectedUser] = useState();
     const toast = useRef(null);
+    const router = useRouter();
 
     useEffect(() => {
-        UserService.getAllUsers().then(data => setUsers(data));
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+        try {
+            const secret = process.env.NEXT_PUBLIC_JWT_SECRET as string;
+            const decoded = jwt.verify(token, secret.toString('utf-8'));
+            if(decoded.role.toUpperCase() === 'STUDENT'){
+                router.push('/auth/access');
+                return;
+            }
+          } catch (error) {
+            console.log(error);
+            router.push('/auth/login');
+            return;
+          }
+    }, [router]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        UserService.getAllUsers(token).then(data => setUsers(data));
     }, []);
 
     const checkStudentBooks = (user: any) => {
+        const token = localStorage.getItem('token');
         setSelectedUser(user);
-        BookRecordsService.checkOutActiveRecord(user.id).then(record => {
+        BookRecordsService.checkOutActiveRecord(user.id, token).then(record => {
             const books = record.map(item => item.book);
             setBooks(books);
         }
@@ -33,19 +57,20 @@ const BookRecordMantto = () => {
     };
 
     const returnProcess = () => {
+        const token = localStorage.getItem('token');
         if(selectedBooks.length > 0){
             const bookIds = selectedBooks.map(book => book.id);
             const checkOutBody = {
                 "userId": selectedUser.id,
                 "booksId": bookIds
             };
-            BookRecordsService.returnStudentBooks(checkOutBody).then(data => {
+            BookRecordsService.returnStudentBooks(checkOutBody,token).then(data => {
                 if(!data?.message){
                     toast.current.show({ severity: 'success', summary: 'Process', detail: 'Return Sucessfully', life: 3000 });
                 } else{
                     toast.current.show({ severity: 'error', summary: 'Return Error', detail: data?.message, life: 3000 });
                 }
-                BookRecordsService.checkOutActiveRecord(selectedUser.id).then(record => {
+                BookRecordsService.checkOutActiveRecord(selectedUser.id,token).then(record => {
                     const _books = record.map(item => item.book);
                     setBooks(_books);
                 });

@@ -4,13 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { BookService } from '@/demo/service/BookService';
-import { UserService } from '@/demo/service/UsersService';
 import { Toolbar } from 'primereact/toolbar';
 import { RadioButton } from 'primereact/radiobutton';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BookRecordsService } from '@/demo/service/BookRecordsService';
+import { useRouter } from 'next/navigation';
+import jwt from 'jsonwebtoken';
 
 const Dashboard = () => {
 
@@ -18,44 +19,65 @@ const Dashboard = () => {
     const [filterValue, setFilterValue] = useState("");
     const [books, setBooks] = useState([]);
     const [checkOutBooks, setCheckOutBooks] = useState([]);
-    const [users, setUsers] = useState([]);
+    const [sessionUser, setSessionUser] = useState('');
     const [selectedBooks, setSelectedBooks] = useState([]);
     const toast = useRef(null);
+    const router = useRouter();
+    
 
     useEffect(() => {
-        BookService.getAllBooks().then(data => setBooks(data));
-    }, []);
-
-    useEffect(() => {
-        UserService.getAllUsers().then(data => { 
-            setUsers(data);
-            BookRecordsService.checkOutActiveRecord(data[0].id).then(record => {
-                    const books = record.map(item => item.book);
-                    setCheckOutBooks(books);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+        try {
+            const secret = process.env.NEXT_PUBLIC_JWT_SECRET as string;
+            const decoded = jwt.verify(token, secret.toString('utf-8'));
+            setSessionUser(decoded?.sub);
+            BookRecordsService.checkOutActiveRecord(decoded?.sub, token).then(record => {
+                const books = record.map(item => item.book);
+                setCheckOutBooks(books);
                 }
             );
-        });
+          } catch (error) {
+            console.log(error);
+            router.push('/auth/login');
+            return;
+          }
+    }, [router]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        BookService.getAllBooks(token).then(data => setBooks(data));
     }, []);
 
     const checkOutProcess = () => {
+        const token = localStorage.getItem('token');
         if(selectedBooks.length > 0){
             const bookIds = selectedBooks.map(book => book.id);
             const checkOutBody = {
-                "userId": users[0].id,
+                "userId": sessionUser,
                 "booksId": bookIds
             };
-            BookRecordsService.checkOutStudentBooks(checkOutBody).then(data => {
+            BookRecordsService.checkOutStudentBooks(checkOutBody, token).then(data => {
                 if(!data?.message){
                     toast.current.show({ severity: 'success', summary: 'Process', detail: 'Check Out Sucessfully', life: 3000 });
                 } else{
                     toast.current.show({ severity: 'error', summary: 'Check Out Error', detail: data?.message, life: 3000 });
                 }
-                BookService.getAllBooks().then(data => setBooks(data));
+                BookService.getAllBooks(token).then(data => setBooks(data));
+                BookRecordsService.checkOutActiveRecord(sessionUser, token).then(record => {
+                    const books = record.map(item => item.book);
+                    setCheckOutBooks(books);
+                    }
+                );
             });
         }
     };
 
     const filterProcess = () => {
+        const token = localStorage.getItem('token');
         if(filterValue.length > 0){
             let _filterBody = {};
             if(filter === "1"){
@@ -65,9 +87,9 @@ const Dashboard = () => {
             } else {
                 _filterBody = { "genre": filterValue };
             }
-            BookService.searchBooks(_filterBody).then(data => setBooks(data));
+            BookService.searchBooks(_filterBody,token).then(data => setBooks(data));
         } else {
-            BookService.getAllBooks().then(data => setBooks(data));
+            BookService.getAllBooks(token).then(data => setBooks(data));
         }
     };
 

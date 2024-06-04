@@ -1,8 +1,8 @@
 export const BookService = {   
 
-    async getAllBooks() {
+    async getAllBooks(token: any) {
         try {
-        const response = await fetch(`/api/books`, { headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
+        const response = await fetch(`/api/books`, { headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` } });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
@@ -12,9 +12,9 @@ export const BookService = {
         }
     },
 
-    async insertBooks(data: any) {
+    async insertBooks(data: any, token: any) {
         try {
-        const response = await fetch(`/api/books`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, body: JSON.stringify(data), });
+        const response = await fetch(`/api/books`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data), });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
@@ -24,9 +24,9 @@ export const BookService = {
         }
     },
 
-    async updateBooks(data: any) {
+    async updateBooks(data: any, token: any) {
         try {
-        const response = await fetch(`/api/books/${data.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, body: JSON.stringify(data), });
+        const response = await fetch(`/api/books/${data.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data), });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
@@ -36,9 +36,9 @@ export const BookService = {
         }
     },
 
-    async searchBooks(data: any) {
+    async searchBooks(data: any, token: any) {
         try {
-        const response = await fetch(`/api/books/search`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, body: JSON.stringify(data), });
+        const response = await fetch(`/api/books/search`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data), });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }

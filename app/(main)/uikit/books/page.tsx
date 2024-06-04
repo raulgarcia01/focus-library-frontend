@@ -11,6 +11,8 @@ import { InputNumber } from 'primereact/inputnumber';
 import { classNames } from 'primereact/utils';
 import { Toast } from 'primereact/toast';
 import { BookService } from '../../../../demo/service/BookService';
+import { useRouter } from 'next/navigation';
+import jwt from 'jsonwebtoken';
 
 const BookMantto = () => {
 
@@ -29,9 +31,31 @@ const BookMantto = () => {
     const [selectedBook, setSelectedBook] = useState(null);
     const [book, setBook] = useState(emptyBook);
     const toast = useRef(null);
+    const router = useRouter();
 
     useEffect(() => {
-        BookService.getAllBooks().then(data => setBooks(data));
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+        try {
+            const secret = process.env.NEXT_PUBLIC_JWT_SECRET as string;
+            const decoded = jwt.verify(token, secret.toString('utf-8'));
+            if(decoded.role.toUpperCase() === 'STUDENT'){
+                router.push('/auth/access');
+                return;
+            }
+          } catch (error) {
+            console.log(error);
+            router.push('/auth/login');
+            return;
+          }
+    }, [router]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        BookService.getAllBooks(token).then(data => setBooks(data));
     }, []);
 
     const onInputChange = (e, name) => {
@@ -92,6 +116,7 @@ const BookMantto = () => {
     };
 
     const saveBook = () => {
+        const token = localStorage.getItem('token');
         setSubmitted(true);
 
         if (book.title.trim() && book.author.trim() 
@@ -101,7 +126,7 @@ const BookMantto = () => {
             let _book = {...book};
             
             if(!book?.id){
-                BookService.insertBooks(_book).then(data => {
+                BookService.insertBooks(_book,token).then(data => {
                     if(data){
                         setBook(data);
                         _books.push(data);
@@ -114,7 +139,7 @@ const BookMantto = () => {
                     }
                 });
             } else {
-                BookService.updateBooks(_book).then(data => {
+                BookService.updateBooks(_book,token).then(data => {
                     if(data){
                         setBook(data);
                         const index = findIndexById(_book.id);

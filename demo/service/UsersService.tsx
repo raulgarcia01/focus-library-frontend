@@ -1,8 +1,8 @@
 export const UserService = {   
 
-    async getAllUsers() {
+    async getAllUsers(token: any) {
         try {
-        const response = await fetch(`/api/users`, { headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' } });
+        const response = await fetch(`/api/users`, { headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` } });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
@@ -13,9 +13,9 @@ export const UserService = {
     },
 
 
-    async insertUsers(data: any) {
+    async insertUsers(data: any, token: any) {
         try {
-        const response = await fetch(`/api/users`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, body: JSON.stringify(data), });
+        const response = await fetch(`/api/users`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data), });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
@@ -25,9 +25,9 @@ export const UserService = {
         }
     },
 
-    async updateUsers(data: any) {
+    async updateUsers(data: any, token: any) {
         try {
-        const response = await fetch(`/api/users/${data.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, body: JSON.stringify(data), });
+        const response = await fetch(`/api/users/${data.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(data), });
         if(!response.ok){
             throw new Error("Network response was not OK");
         }
